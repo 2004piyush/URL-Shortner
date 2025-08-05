@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState } from "react";
-import { getCurrentUser } from "./db/apiAuth";
+import { getCurrentUser } from "../db/apiAuth";
 
 const UrlContext = createContext();
 
