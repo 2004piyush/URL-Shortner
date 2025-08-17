@@ -1,8 +1,11 @@
 import { useState } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import QRCodeGenerator from "@/components/qr-code-generator";
+import AnalyticsChart from "@/components/analytics-chart";
 import { 
   Plus, 
   Link2, 
@@ -16,12 +19,21 @@ import {
   TrendingUp,
   Eye,
   Settings,
-  Download
+  Download,
+  Filter,
+  Search,
+  Tag,
+  Clock,
+  Shield
 } from "lucide-react";
 
 const Dashboard = () => {
   const [newUrl, setNewUrl] = useState("");
   const [customAlias, setCustomAlias] = useState("");
+  const [expirationDate, setExpirationDate] = useState("");
+  const [password, setPassword] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedAnalytics, setSelectedAnalytics] = useState(null);
   const [links, setLinks] = useState([
     {
       id: 1,
@@ -29,7 +41,10 @@ const Dashboard = () => {
       shortUrl: "linkshort.app/abc123",
       clicks: 142,
       createdAt: "2024-01-15",
-      status: "active"
+      status: "active",
+      tags: ["marketing", "campaign"],
+      hasPassword: false,
+      expiresAt: null
     },
     {
       id: 2,
@@ -37,7 +52,10 @@ const Dashboard = () => {
       shortUrl: "linkshort.app/gh-repo",
       clicks: 89,
       createdAt: "2024-01-14",
-      status: "active"
+      status: "active",
+      tags: ["development"],
+      hasPassword: true,
+      expiresAt: "2024-02-15"
     },
     {
       id: 3,
@@ -45,7 +63,10 @@ const Dashboard = () => {
       shortUrl: "linkshort.app/docs",
       clicks: 256,
       createdAt: "2024-01-13",
-      status: "active"
+      status: "active",
+      tags: ["documentation", "help"],
+      hasPassword: false,
+      expiresAt: null
     }
   ]);
 
@@ -59,12 +80,17 @@ const Dashboard = () => {
       shortUrl: `linkshort.app/${customAlias || Math.random().toString(36).substr(2, 8)}`,
       clicks: 0,
       createdAt: new Date().toISOString().split('T')[0],
-      status: "active"
+      status: "active",
+      tags: [],
+      hasPassword: !!password,
+      expiresAt: expirationDate || null
     };
     
     setLinks([newLink, ...links]);
     setNewUrl("");
     setCustomAlias("");
+    setExpirationDate("");
+    setPassword("");
   };
 
   const copyToClipboard = (url) => {
@@ -75,6 +101,11 @@ const Dashboard = () => {
     setLinks(links.filter(link => link.id !== id));
   };
 
+  const filteredLinks = links.filter(link =>
+    link.originalUrl.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    link.shortUrl.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    link.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
   const totalClicks = links.reduce((sum, link) => sum + link.clicks, 0);
 
   return (
@@ -204,6 +235,35 @@ const Dashboard = () => {
                 </div>
               </div>
             </div>
+            
+            <div className="grid md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700">Password Protection (Optional)</label>
+                <div className="relative">
+                  <Shield className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+                  <Input
+                    type="password"
+                    placeholder="Set password for link"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="pl-10 h-12 border-2 border-gray-200 focus:border-green-500 rounded-lg"
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700">Expiration Date (Optional)</label>
+                <div className="relative">
+                  <Clock className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+                  <Input
+                    type="date"
+                    value={expirationDate}
+                    onChange={(e) => setExpirationDate(e.target.value)}
+                    className="pl-10 h-12 border-2 border-gray-200 focus:border-orange-500 rounded-lg"
+                  />
+                </div>
+              </div>
+            </div>
+            
             <Button 
               type="submit" 
               size="lg" 
@@ -226,14 +286,25 @@ const Dashboard = () => {
                 Manage and track your shortened links performance
               </CardDescription>
             </div>
-            <Badge variant="secondary" className="px-3 py-1 text-sm">
-              {links.length} Total Links
-            </Badge>
+            <div className="flex items-center gap-3">
+              <div className="relative">
+                <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="Search links..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-9 w-64"
+                />
+              </div>
+              <Badge variant="secondary" className="px-3 py-1 text-sm">
+                {filteredLinks.length} of {links.length} Links
+              </Badge>
+            </div>
           </div>
         </CardHeader>
         <CardContent className="p-0">
           <div className="divide-y divide-gray-100">
-            {links.map((link, index) => (
+            {filteredLinks.map((link, index) => (
               <div key={link.id} className="p-6 hover:bg-gray-50 transition-colors">
                 <div className="flex items-center justify-between">
                   <div className="flex-1 min-w-0">
@@ -254,6 +325,18 @@ const Dashboard = () => {
                           <MousePointer className="h-3 w-3 mr-1" />
                           {link.clicks} clicks
                         </Badge>
+                        {link.hasPassword && (
+                          <Badge variant="outline" className="text-xs border-yellow-300 text-yellow-700 bg-yellow-50">
+                            <Shield className="h-3 w-3 mr-1" />
+                            Protected
+                          </Badge>
+                        )}
+                        {link.expiresAt && (
+                          <Badge variant="outline" className="text-xs border-orange-300 text-orange-700 bg-orange-50">
+                            <Clock className="h-3 w-3 mr-1" />
+                            Expires {link.expiresAt}
+                          </Badge>
+                        )}
                         <Badge variant="outline" className="text-xs">
                           {link.status}
                         </Badge>
@@ -264,6 +347,19 @@ const Dashboard = () => {
                       <Globe className="h-4 w-4 inline mr-2" />
                       {link.originalUrl}
                     </p>
+                    
+                    {link.tags.length > 0 && (
+                      <div className="flex items-center gap-2 mb-3">
+                        <Tag className="h-3 w-3 text-gray-400" />
+                        <div className="flex gap-1">
+                          {link.tags.map((tag, tagIndex) => (
+                            <Badge key={tagIndex} variant="outline" className="text-xs">
+                              {tag}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                     
                     <div className="flex items-center gap-4 text-xs text-gray-500">
                       <span className="flex items-center gap-1">
@@ -278,6 +374,10 @@ const Dashboard = () => {
                   </div>
                   
                   <div className="flex items-center gap-2 ml-6">
+                    <QRCodeGenerator 
+                      url={`https://${link.shortUrl}`} 
+                      title={`QR Code for ${link.shortUrl}`}
+                    />
                     <Button
                       variant="outline"
                       size="sm"
@@ -294,13 +394,26 @@ const Dashboard = () => {
                     >
                       <ExternalLink className="h-4 w-4" />
                     </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="hover:bg-purple-50 hover:border-purple-300"
-                    >
-                      <BarChart3 className="h-4 w-4" />
-                    </Button>
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="hover:bg-purple-50 hover:border-purple-300"
+                        >
+                          <BarChart3 className="h-4 w-4" />
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+                        <DialogHeader>
+                          <DialogTitle className="flex items-center gap-2">
+                            <BarChart3 className="h-5 w-5 text-purple-600" />
+                            Analytics for {link.shortUrl}
+                          </DialogTitle>
+                        </DialogHeader>
+                        <AnalyticsChart linkId={link.id} />
+                      </DialogContent>
+                    </Dialog>
                     <Button
                       variant="outline"
                       size="sm"
@@ -314,7 +427,23 @@ const Dashboard = () => {
               </div>
             ))}
             
-            {links.length === 0 && (
+            {filteredLinks.length === 0 && searchTerm && (
+              <div className="text-center py-16 text-gray-500">
+                <div className="w-24 h-24 mx-auto mb-6 bg-gray-100 rounded-full flex items-center justify-center">
+                  <Search className="h-12 w-12 text-gray-400" />
+                </div>
+                <h3 className="text-xl font-semibold mb-2 text-gray-700">No links found</h3>
+                <p className="text-gray-500 mb-6">Try adjusting your search terms</p>
+                <Button 
+                  onClick={() => setSearchTerm("")}
+                  variant="outline"
+                >
+                  Clear Search
+                </Button>
+              </div>
+            )}
+            
+            {links.length === 0 && !searchTerm && (
               <div className="text-center py-16 text-gray-500">
                 <div className="w-24 h-24 mx-auto mb-6 bg-gray-100 rounded-full flex items-center justify-center">
                   <Link2 className="h-12 w-12 text-gray-400" />

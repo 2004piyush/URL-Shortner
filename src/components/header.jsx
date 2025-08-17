@@ -1,5 +1,6 @@
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "./ui/button";
+import ThemeToggle from "./theme-toggle";
 import { useUrlState } from "@/context";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import {
@@ -38,6 +39,7 @@ const Header = () => {
       </Link>
 
       <div className="flex items-center gap-4">
+        <ThemeToggle />
         {!isAuthenticated ? (
           <div className="flex items-center gap-3">
             <Button 
